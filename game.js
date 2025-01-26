@@ -12,13 +12,13 @@ function handleInput() {
       SFX.start.play();
       break;
     case state.Play:
-      bird.flap();
+      bubble.flap();
       break;
     case state.gameOver:
       state.curr = state.getReady;
-      bird.speed = 0;
-      bird.y = 125;         
-      pipe.pipes = [];
+      bubble.speed = 0;
+      bubble.y = 125;         
+      plank.planks = [];
       UI.score.curr = 0;
       SFX.played = false;
       break;
@@ -35,7 +35,7 @@ scrn.onkeydown = function (e) {
   }
 };
 
-
+// Setup for the gameplay
 let frames = 0;
 let dx = 2;
 const state = {
@@ -44,6 +44,8 @@ const state = {
   Play: 1,
   gameOver: 2,
 };
+
+// SFX object to hold all audio references, and  a flag for tracking the play state
 const SFX = {
   start: new Audio(),
   flap: new Audio(),
@@ -52,6 +54,9 @@ const SFX = {
   pop: new Audio(),
   played: false,
 };
+
+// Object representing the ground. 
+// The update function creates the scrolling effect 
 const gnd = {
   sprite: new Image(),
   x: 0,
@@ -66,6 +71,8 @@ const gnd = {
     this.x = this.x % (this.sprite.width / 2);
   },
 };
+
+// Object for the background
 const bg = {
   sprite: new Image(),
   x: 0,
@@ -76,15 +83,16 @@ const bg = {
   },
 };
 
-const pipe = {
+// Object for the plank obstacles.
+const plank = {
   top: { sprite: new Image() },
   bot: { sprite: new Image() },
-  gap: 200,  // Increase the gap to give the bird more room to pass through
+  gap: 200,  // Increase the gap to give the bubble more room to pass through
   moved: true,
-  pipes: [],
+  planks: [],
   draw: function () {
-    for (let i = 0; i < this.pipes.length; i++) {
-      let p = this.pipes[i];
+    for (let i = 0; i < this.planks.length; i++) {
+      let p = this.planks[i];
       sctx.drawImage(this.top.sprite, p.x, p.y);
       sctx.drawImage(
         this.bot.sprite,
@@ -96,27 +104,28 @@ const pipe = {
   update: function () {
     if (state.curr != state.Play) return;
     if (frames % 100 == 0) {
-      this.pipes.push({
+      this.planks.push({
         x: parseFloat(scrn.width),
         y: -200 * Math.min(Math.random() + 1, 1.8),
       });
     }
-    this.pipes.forEach((pipe) => {
-      pipe.x -= 2; // Slightly faster pipes for a bit more challenge
+    this.planks.forEach((plank) => {
+      plank.x -= 2; // Slightly faster planks for a bit more challenge
     });
 
-    if (this.pipes.length && this.pipes[0].x < -this.top.sprite.width) {
-      this.pipes.shift();
+    if (this.planks.length && this.planks[0].x < -this.top.sprite.width) {
+      this.planks.shift();
       this.moved = true;
     }
   },
 };
 
-const bird = {
+// Object representing the bubble (player character)
+const bubble = {
   spriteSheet: new Image(),  // Load the sprite sheet
   spriteWidth: 34,           // New width of the sprite (adjusted)
   spriteHeight: 34,          // New height of the sprite (adjusted)
-  rotatation: 0,
+  rotation: 0,
   x: 50,
   y: 125,
   speed: 0,
@@ -139,10 +148,10 @@ const bird = {
 
       sctx.save();
       sctx.translate(this.x, this.y);
-      // If you want rotation, keep this line:
-      sctx.rotate(this.rotatation * RAD);
+      // If you want rotation, keep this line (we're considering removing it):
+      sctx.rotate(this.rotation * RAD);
 
-      // Draw the chosen PNG, centered on the bird’s position
+      // Draw the chosen PNG, centered on the bubble's position
       sctx.drawImage(
         imgFrame, 
         -imgFrame.width / 2, 
@@ -151,12 +160,12 @@ const bird = {
       sctx.restore();
 
     } else {
-      // Otherwise, draw the normal bird sprite
+      // Otherwise, draw the normal bubble sprite
       let h = this.spriteHeight;
       let w = this.spriteWidth;
       sctx.save();
       sctx.translate(this.x, this.y);
-      sctx.rotate(this.rotatation * RAD);
+      sctx.rotate(this.rotation * RAD);
       sctx.drawImage(
         this.spriteSheet,
         0, 0,
@@ -171,9 +180,9 @@ const bird = {
     let r = parseFloat(this.spriteWidth) / 2;  // Calculate radius for collision detection
     switch (state.curr) {
       case state.getReady:
-          bird.spriteSheet.src = "img/bubble/bubble_pop_frame_01.png"; // Path to the bubble PNGbird.animations[2].sprite.src = "img/bird/b2.png";
+          bubble.spriteSheet.src = "img/bubble/bubble_pop_frame_01.png";
 
-        this.rotatation = 0;
+        this.rotation = 0;
         this.y += frames % 10 == 0 ? Math.sin(frames * RAD) : 0;
         break;
       case state.Play:
@@ -181,7 +190,7 @@ const bird = {
         this.setRotation();          // Set rotation based on speed
         this.speed -= this.gravity;  // Apply gravity to slow the upward motion
         this.speed *= this.drag;     // Apply drag for smooth movement
-        if (this.y + r >= gnd.y || this.collisioned()) {
+        if (this.y + r >= gnd.y || this.collision()) {
           if (this.y + r >= gnd.y) {
             if (!SFX.played) {
               SFX.pop.play();
@@ -212,7 +221,7 @@ const bird = {
               this.groundAnim.currentFrame++;
 
               if(this.groundAnim.currentFrame >= this.groundAnim.frameCount){
-                bird.spriteSheet.src = ""; // Path to the bubble PNGbird.animations[2].sprite.src = "img/bird/b2.png";
+                bubble.spriteSheet.src = ""; 
 
                 this.groundAnim.playing = false
               }
@@ -232,29 +241,29 @@ const bird = {
   setRotation: function () {
     // Adjust rotation based on speed to simulate tilting
     if (this.speed <= 0) {
-      this.rotatation = Math.max(-15, (-25 * this.speed) / (-1 * this.thrust));
+      this.rotation = Math.max(-15, (-25 * this.speed) / (-1 * this.thrust));
     } else if (this.speed > 0) {
-      this.rotatation = Math.min(15, (15 * this.speed) / (this.thrust * 2)); // Limit upwards rotation
+      this.rotation = Math.min(15, (15 * this.speed) / (this.thrust * 2)); // Limit upwards rotation
     }
   },
-  collisioned: function () {
-    if (!pipe.pipes.length) return;
-    let r = this.spriteHeight / 4 + this.spriteWidth / 4; // Radius of the bird (adjusted)
-    let x = pipe.pipes[0].x;
-    let y = pipe.pipes[0].y;
-    let roof = y + parseFloat(pipe.top.sprite.height);
-    let floor = roof + pipe.gap;
-    let w = parseFloat(pipe.top.sprite.width);
+  collision: function () {
+    if (!plank.planks.length) return;
+    let r = this.spriteHeight / 4 + this.spriteWidth / 4; // Radius of the bubble
+    let x = plank.planks[0].x;
+    let y = plank.planks[0].y;
+    let roof = y + parseFloat(plank.top.sprite.height);
+    let floor = roof + plank.gap;
+    let w = parseFloat(plank.top.sprite.width);
     if (this.x + r >= x) {
       if (this.x + r < x + w) {
         if (this.y - r <= roof || this.y + r >= floor) {
           SFX.hit.play();
           return true;
         }
-      } else if (pipe.moved) {
+      } else if (plank.moved) {
         UI.score.curr++;
         SFX.score.play();
-        pipe.moved = false;
+        plank.moved = false;
       }
     }
   },
@@ -337,8 +346,8 @@ const UI = {
 
 gnd.sprite.src = "img/ground.png";
 bg.sprite.src = "img/BG.png";
-pipe.top.sprite.src = "img/wood-1.png";
-pipe.bot.sprite.src = "img/wood-1.png";
+plank.top.sprite.src = "img/wood-1.png";
+plank.bot.sprite.src = "img/wood-1.png";
 UI.gameOver.sprite.src = "img/go.png";
 UI.getReady.sprite.src = "";
 UI.tap[0].sprite.src = "img/tap/t0.png";
@@ -349,16 +358,16 @@ SFX.score.src = "sfx/sfx_SCORE.mp3";
 SFX.hit.src = "sfx/sfx_HIT.mp3";
 SFX.pop.src = "sfx/sfx_POP.mp3";
 // Load the single image for the bubble
-bird.spriteSheet.src = "img/bubble/bubble_pop_frame_01.png"; // Path to the bubble PNGbird.animations[2].sprite.src = "img/bird/b2.png";
+bubble.spriteSheet.src = "img/bubble/bubble_pop_frame_01.png"; 
 
 for(let i = 1; i<=7; i++){
   const img = new Image();
   img.src = `img/bubble/bubble_pop_frame_0${i}.png`
-  bird.groundAnim.frames.push(img);
+  bubble.groundAnim.frames.push(img);
 }
 const img = new Image();
 img.src = "";
-bird.groundAnim.frames.push(img);
+bubble.groundAnim.frames.push(img);
 function gameLoop() {
   update();
   draw();
@@ -366,9 +375,9 @@ function gameLoop() {
 }
 
 function update() {
-  bird.update();
+  bubble.update();
   gnd.update();
-  pipe.update();
+  plank.update();
   UI.update();
 }
 
@@ -376,9 +385,9 @@ function draw() {
   sctx.fillStyle = "#1B8C68";
   sctx.fillRect(0, 0, scrn.width, scrn.height);
   bg.draw();
-  pipe.draw();
+  plank.draw();
 
-  bird.draw();
+  bubble.draw();
   gnd.draw();
   UI.draw();
 }
