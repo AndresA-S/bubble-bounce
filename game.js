@@ -1,8 +1,11 @@
+// Setup stuff
 const RAD = Math.PI / 180;
 const scrn = document.getElementById("canvas");
 const sctx = scrn.getContext("2d");
 scrn.tabIndex = 1;
-scrn.addEventListener("click", () => {
+
+// Function for handling clicking and keyboard input
+function handleInput() {
   switch (state.curr) {
     case state.getReady:
       state.curr = state.Play;
@@ -14,36 +17,24 @@ scrn.addEventListener("click", () => {
     case state.gameOver:
       state.curr = state.getReady;
       bird.speed = 0;
-      bird.y = 125;
+      bird.y = 125;         
       pipe.pipes = [];
       UI.score.curr = 0;
       SFX.played = false;
       break;
   }
-});
+}
 
-scrn.onkeydown = function keyDown(e) {
-  if (e.keyCode == 32 || e.keyCode == 87 || e.keyCode == 38) {
-    // Space Key or W key or arrow up
-    switch (state.curr) {
-      case state.getReady:
-        state.curr = state.Play;
-        SFX.start.play();
-        break;
-      case state.Play:
-        bird.flap();
-        break;
-      case state.gameOver:
-        state.curr = state.getReady;
-        bird.speed = 0;
-        bird.y = 125;
-        pipe.pipes = [];
-        UI.score.curr = 0;
-        SFX.played = false;
-        break;
-    }
+//This runs the input function in response to a click
+scrn.addEventListener("click", handleInput);
+
+//This runs the input function in response to the space bar, W, or Up Arrow keys
+scrn.onkeydown = function (e) {
+  if (e.keyCode === 32 || e.keyCode === 87 || e.keyCode === 38) {
+    handleInput();
   }
 };
+
 
 let frames = 0;
 let dx = 2;
